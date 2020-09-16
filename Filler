@@ -1,0 +1,625 @@
+
+import sys
+import toolutils
+
+outputitem = None
+inputindex = -1
+inputitem = None
+outputindex = -1
+
+num_args = 1
+h_extra_args = ''
+pane = toolutils.activePane(kwargs)
+if not isinstance(pane, hou.NetworkEditor):
+    pane = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
+    if pane is None:
+       hou.ui.displayMessage(
+               'Cannot create node: cannot find any network pane')
+       sys.exit(0)
+else: # We're creating this tool from the TAB menu inside a network editor
+    pane_node = pane.pwd()
+    if kwargs.has_key("outputnodename") and kwargs.has_key("inputindex"):
+        outputitem = pane_node.item(kwargs["outputnodename"])
+        inputindex = kwargs["inputindex"]
+        h_extra_args += 'set arg4 = "' + kwargs["outputnodename"] + '"\n'
+        h_extra_args += 'set arg5 = "' + str(inputindex) + '"\n'
+        num_args = 6
+    if kwargs.has_key("inputnodename") and kwargs.has_key("outputindex"):
+        inputitem = pane_node.item(kwargs["inputnodename"])
+        outputindex = kwargs["outputindex"]
+        h_extra_args += 'set arg6 = "' + kwargs["inputnodename"] + '"\n'
+        h_extra_args += 'set arg9 = "' + str(outputindex) + '"\n'
+        num_args = 9 
+    if kwargs.has_key("autoplace"):
+        autoplace = kwargs["autoplace"]
+    else:
+        autoplace = False
+    # If shift-clicked we want to auto append to the current
+    # node
+    if kwargs.has_key("shiftclick") and kwargs["shiftclick"]:
+        if inputitem is None:
+            inputitem = pane.currentNode()
+            outputindex = 0
+    if kwargs.has_key("nodepositionx") and             kwargs.has_key("nodepositiony"):
+        try:
+            pos = [ float( kwargs["nodepositionx"] ),
+                    float( kwargs["nodepositiony"] )]
+        except:
+            pos = None
+    else:
+        pos = None
+
+    if not autoplace and not pane.listMode():
+        if pos is not None:
+            pass
+        elif outputitem is None:
+            pos = pane.selectPosition(inputitem, outputindex, None, -1)
+        else:
+            pos = pane.selectPosition(inputitem, outputindex,
+                                      outputitem, inputindex)
+
+    if pos is not None:
+        if kwargs.has_key("node_bbox"):
+            size = kwargs["node_bbox"]
+            pos[0] -= size[0] / 2
+            pos[1] -= size[1] / 2
+        else:
+            pos[0] -= 0.573625
+            pos[1] -= 0.220625
+        h_extra_args += 'set arg2 = "' + str(pos[0]) + '"\n'
+        h_extra_args += 'set arg3 = "' + str(pos[1]) + '"\n'
+h_extra_args += 'set argc = "' + str(num_args) + '"\n'
+            
+pane_node = pane.pwd()
+child_type = pane_node.childTypeCategory().nodeTypes()
+
+if not child_type.has_key('subnet'):
+   hou.ui.displayMessage(
+           'Cannot create node: incompatible pane network type')
+   sys.exit(0)
+
+# First clear the node selection
+pane_node.setSelected(False, True)
+
+h_path = pane_node.path()
+h_preamble = 'set arg1 = "' + h_path + '"\n'
+h_cmd = r''' 
+if ($argc < 2 || "$arg2" == "") then
+   set arg2 = 0
+endif
+if ($argc < 3 || "$arg3" == "") then
+   set arg3 = 0
+endif
+# Automatically generated script
+# $arg1 - the path to add this node
+# $arg2 - x position of the tile
+# $arg3 - y position of the tile
+# $arg4 - input node to wire to
+# $arg5 - which input to wire to
+# $arg6 - output node to wire to
+# $arg7 - the type of this node
+# $arg8 - the node is an indirect input
+# $arg9 - index of output from $arg6
+
+\set noalias = 1
+set saved_path = `execute("oppwf")`
+opcf $arg1
+
+# Node $_obj_CityCompoundLayout_subnet3 (Sop/subnet)
+set _obj_CityCompoundLayout_subnet3 = `run("opadd -e -n -v subnet subnet3")`
+oplocate -x `$arg2 + 0` -y `$arg3 + 0` $_obj_CityCompoundLayout_subnet3
+opcolor -c 0.28999999165534973 0.56499999761581421 0.88599997758865356 $_obj_CityCompoundLayout_subnet3
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off $_obj_CityCompoundLayout_subnet3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3
+opcf $_obj_CityCompoundLayout_subnet3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivewrangle4 (Sop/attribwrangle)
+set _obj_CityCompoundLayout_subnet3_primitivewrangle4 = `run("opadd -e -n -v attribwrangle primitivewrangle4")`
+oplocate -x `$arg2 + -4.04488` -y `$arg3 + 0.96510099999999999` $_obj_CityCompoundLayout_subnet3_primitivewrangle4
+opparm $_obj_CityCompoundLayout_subnet3_primitivewrangle4  bindings ( 0 ) groupbindings ( 0 )
+opparm $_obj_CityCompoundLayout_subnet3_primitivewrangle4 class ( primitive ) snippet ( 'vector min, max;\ngetbbox(0, itoa(@primnum), min, max);\nint prims[] =primfind(1, min, max);\n@del = 0;\nif(len(prims)==0){\n    @del=1;\n    //removeprim(0, @primnum, 1);\n}' )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_primitivewrangle4
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivewrangle4
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivewrangle4
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3 (Sop/attribvop)
+set _obj_CityCompoundLayout_subnet3_primitivevop3 = `run("opadd -e -n -v attribvop primitivevop3")`
+oplocate -x `$arg2 + 0.95130000000000003` -y `$arg3 + -4.4012000000000002` $_obj_CityCompoundLayout_subnet3_primitivevop3
+opspareds '    parm {         name    "bindgroup"         baseparm         label   "Group"         export  none         bindselector uvselect "Modify Points"             "Select the points to affect and press Enter to complete."             0 1 0xffffffff 0 bindgrouptype 0     }     parm {         name    "bindgrouptype"         baseparm         label   "Group Type"         export  none     }     parm {         name    "bindclass"         baseparm         label   "Run Over"         export  none     }     parm {         name    "vex_numcount"         baseparm         label   "Number Count"         export  none     }     parm {         name    "vex_threadjobsize"         baseparm         label   "Thread Job Size"         export  none     }     group {         name    "stdswitcher3"         label   "Vex Setup"          parm {             name    "vexsrc"             baseparm             label   "Vex Source"             export  all         }         parm {             name    "shoppath"             baseparm             label   "Shop Path"             export  all         }         parm {             name    "script"             baseparm             label   "Script"             export  all         }         parm {             name    "clear"             baseparm             label   "Re-load VEX Functions"             export  all         }         parm {             name    "vop_compiler"             baseparm             label   "Compiler"             export  none         }         parm {             name    "vop_forcecompile"             baseparm             label   "Force Compile"             export  none         }         parm {             name    "vex_cwdpath"             baseparm             label   "Evaluation Node Path"             export  none         }         parm {             name    "vex_outputmask"             baseparm             label   "Export Parameters"             export  none         }         parm {             name    "vex_multithread"             baseparm             label   "Enable Multithreading"             export  none         }     }      group {         name    "stdswitcher3_1"         label   "Attribute Bindings"          parm {             name    "autobind"             baseparm             label   "Autobind by Name"             export  none         }         multiparm {             name    "bindings"             label    "Number of Bindings"             baseparm             default 0             parmtag { "multistartoffset" "1" }              parm {                 name    "bindname#"                 baseparm                 label   "Attribute Name"                 export  none             }             parm {                 name    "bindparm#"                 baseparm                 label   "VEX Parameter"                 export  none             }         }          parm {             name    "groupautobind"             baseparm             label   "Autobind Groups by Name"             export  none         }         multiparm {             name    "groupbindings"             label    "Group Bindings"             baseparm             default 0             parmtag { "multistartoffset" "1" }              parm {                 name    "bindgroupname#"                 baseparm                 label   "Group Name"                 export  none             }             parm {                 name    "bindgroupparm#"                 baseparm                 label   "VEX Parameter"                 export  none             }         }          parm {             name    "vex_updatenmls"             baseparm             label   "Update Normals If Displaced"             export  none         }         parm {             name    "vex_matchattrib"             baseparm             label   "Attribute to Match"             export  none         }         parm {             name    "vex_inplace"             baseparm             label   "Compute Results In Place"             export  none         }         parm {             name    "vex_selectiongroup"             baseparm             label   "Output Selection Group"             export  none         }     }      parm {         name    "ptnum"         label   "Point Number"         type    integer         invisible         default { "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "vtxnum"         label   "Vertex Number"         type    integer         invisible         default { "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "primnum"         label   "Primitive Number"         type    integer         invisible         default { "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "id"         label   "Id"         type    integer         invisible         default { "-1" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "numpt"         label   "Number of Points"         type    integer         invisible         default { "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "numvtx"         label   "Number of Vertices"         type    integer         invisible         default { "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "numprim"         label   "Number of Prims"         type    integer         invisible         default { "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "Time"         label   "Time"         type    float         invisible         default { "0" }         range   { 0 1 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "TimeInc"         label   "Time Inc"         type    float         invisible         default { "0" }         range   { 0 1 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "Frame"         label   "Frame"         type    float         invisible         default { "0" }         range   { 0 1 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "life"         label   "Life"         type    float         invisible         default { "0" }         range   { 0 1 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "age"         label   "Age"         type    float         invisible         default { "0" }         range   { 0 1 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "OpInput2"         label   "Second Input"         type    string         invisible         default { "" }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "OpInput3"         label   "Third Input"         type    string         invisible         default { "" }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "OpInput4"         label   "Fourth Input"         type    string         invisible         default { "" }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "OpInput1"         label   "First Input"         type    string         invisible         default { "" }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "uv"         label   "UV"         type    float         invisible         size    3         default { "0" "0" "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "P"         label   "P"         type    float         invisible         size    3         default { "0" "0" "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "v"         label   "Velocity"         type    float         invisible         size    3         default { "0" "0" "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "force"         label   "Force"         type    float         invisible         size    3         default { "0" "0" "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "Cd"         label   "Cd"         type    float         invisible         size    3         default { "1" "1" "1" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     }     parm {         name    "N"         label   "N"         type    float         invisible         size    3         default { "0" "0" "0" }         range   { 0 10 }         parmtag { "parmvop" "1" }         parmtag { "shaderparmcontexts" "cvex" }     } ' $_obj_CityCompoundLayout_subnet3_primitivevop3
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3  bindings ( 0 ) groupbindings ( 0 )
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3 bindclass ( primitive )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_primitivevop3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3
+opcf $_obj_CityCompoundLayout_subnet3_primitivevop3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopglobal1 (Vop/geometryvopglobal::2.0)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopglobal1 = `run("opadd -e -n -v geometryvopglobal::2.0 geometryvopglobal1")`
+oplocate -x `$arg2 + -9.1534099999999992` -y `$arg3 + 2.3905599999999998` $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopglobal1
+opset -d on -r on -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopglobal1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopglobal1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopglobal1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopoutput1 (Vop/geometryvopoutput)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopoutput1 = `run("opadd -e -n -v geometryvopoutput geometryvopoutput1")`
+oplocate -x `$arg2 + 46.8613` -y `$arg3 + 6.0320900000000002` $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopoutput1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopoutput1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopoutput1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_geometryvopoutput1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1 (Vop/snippet)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_snippet1 = `run("opadd -e -n -v snippet snippet1")`
+oplocate -x `$arg2 + -3.9775100000000001` -y `$arg3 + 8.3009299999999993` $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1  namenum ( 4 )
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1 code ( '//vector min, max;\ngetbbox(2, min, max);\ngetbbox(0, itoa(@primnum),min1, max1);' ) namenum ( 4 ) name1 ( min ) name2 ( max ) name3 ( min1 ) name4 ( max1 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_const1 (Vop/constant)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_const1 = `run("opadd -e -n -v constant const1")`
+oplocate -x `$arg2 + -9.54481` -y `$arg3 + 8.1095600000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_const1
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_const1 consttype ( float3 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_const1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_const1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_const1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1 (Vop/vectofloat)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1 = `run("opadd -e -n -v vectofloat vectofloat1")`
+oplocate -x `$arg2 + 0.24097299999999999` -y `$arg3 + 11.382400000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2 (Vop/vectofloat)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2 = `run("opadd -e -n -v vectofloat vectofloat2")`
+oplocate -x `$arg2 + 0.24097299999999999` -y `$arg3 + 9.2647700000000004` $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1 = `run("opadd -e -n -v floattovec floattovec1")`
+oplocate -x `$arg2 + 3.8880300000000001` -y `$arg3 + 13.100099999999999` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2 = `run("opadd -e -n -v floattovec floattovec2")`
+oplocate -x `$arg2 + 3.9939100000000001` -y `$arg3 + 11.382400000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3 = `run("opadd -e -n -v floattovec floattovec3")`
+oplocate -x `$arg2 + 3.9939100000000001` -y `$arg3 + 9.0530000000000008` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4 = `run("opadd -e -n -v floattovec floattovec4")`
+oplocate -x `$arg2 + 4.2131100000000004` -y `$arg3 + 7.3497599999999998` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append1 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append1 = `run("opadd -e -n -v append append1")`
+oplocate -x `$arg2 + 6.8880299999999997` -y `$arg3 + 13.613300000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_append1
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append1 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append2 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append2 = `run("opadd -e -n -v append append2")`
+oplocate -x `$arg2 + 10.0953` -y `$arg3 + 12.212400000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_append2
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append2 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append2
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append2
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append3 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append3 = `run("opadd -e -n -v append append3")`
+oplocate -x `$arg2 + 12.212899999999999` -y `$arg3 + 10.0242` $_obj_CityCompoundLayout_subnet3_primitivevop3_append3
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append3 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append3
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append4 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append4 = `run("opadd -e -n -v append append4")`
+oplocate -x `$arg2 + 15.1541` -y `$arg3 + 8.38889` $_obj_CityCompoundLayout_subnet3_primitivevop3_append4
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append4 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append4
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append4
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append4
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1 (Vop/block_begin_foreach)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1 = `run("opadd -e -n -v block_begin_foreach foreach_begin1")`
+oplocate -x `$arg2 + 18.261800000000001` -y `$arg3 + 5.8397600000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1  outputnum ( 3 )
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1 blockpath ( ../end_foreach1 ) outputnum ( 3 )
+opcolor -c 0.75 0.40000000596046448 0 $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1 (Vop/block_end)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1 = `run("opadd -e -n -v block_end end_foreach1")`
+oplocate -x `$arg2 + 31.991599999999998` -y `$arg3 + 5.5397600000000002` $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1  outputnum ( 3 )
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1 blockpath ( ../foreach_begin1 ) outputnum ( 3 )
+opcolor -c 0.75 0.40000000596046448 0 $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_end_foreach1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_const2 (Vop/constant)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_const2 = `run("opadd -e -n -v constant const2")`
+oplocate -x `$arg2 + 11.7058` -y `$arg3 + 5.2397600000000004` $_obj_CityCompoundLayout_subnet3_primitivevop3_const2
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_const2 floatdef ( -1 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_const2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_const2
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_const2
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_xyzdist1 (Vop/xyzdist)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_xyzdist1 = `run("opadd -e -n -v xyzdist xyzdist1")`
+oplocate -x `$arg2 + 20.725000000000001` -y `$arg3 + 8.1932899999999993` $_obj_CityCompoundLayout_subnet3_primitivevop3_xyzdist1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_xyzdist1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_xyzdist1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_xyzdist1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_compare1 (Vop/compare)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_compare1 = `run("opadd -e -n -v compare compare1")`
+oplocate -x `$arg2 + 23.116` -y `$arg3 + 6.3697600000000003` $_obj_CityCompoundLayout_subnet3_primitivevop3_compare1
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_compare1 cmp ( lt )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_compare1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_compare1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_compare1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway1 (Vop/twoway)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_twoway1 = `run("opadd -e -n -v twoway twoway1")`
+oplocate -x `$arg2 + 26.721800000000002` -y `$arg3 + 6.2147600000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_const3 (Vop/constant)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_const3 = `run("opadd -e -n -v constant const3")`
+oplocate -x `$arg2 + 11.5646` -y `$arg3 + 3.3927` $_obj_CityCompoundLayout_subnet3_primitivevop3_const3
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_const3 consttype ( float3 ) floatdef ( -1 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_const3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_const3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_const3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway2 (Vop/twoway)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_twoway2 = `run("opadd -e -n -v twoway twoway2")`
+oplocate -x `$arg2 + 26.721800000000002` -y `$arg3 + 4.8954300000000002` $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway2
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway2 signature ( v )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway2
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway2
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1 (Vop/setattrib)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1 = `run("opadd -e -n -v setattrib setattrib1")`
+oplocate -x `$arg2 + 47.205599999999997` -y `$arg3 + 1.9442200000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1 attrib ( P ) i1 ( 0 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_setattrib1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append5 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append5 = `run("opadd -e -n -v append append5")`
+oplocate -x `$arg2 + 14.9064` -y `$arg3 + 17.738399999999999` $_obj_CityCompoundLayout_subnet3_primitivevop3_append5
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append5 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append5
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append5
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append5
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append6 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append6 = `run("opadd -e -n -v append append6")`
+oplocate -x `$arg2 + 9.8476199999999992` -y `$arg3 + 21.561900000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_append6
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append6 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append6
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append6
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append6
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat3 (Vop/vectofloat)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat3 = `run("opadd -e -n -v vectofloat vectofloat3")`
+oplocate -x `$arg2 + -0.0067042600000000001` -y `$arg3 + 18.6143` $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat3
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat3
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec5 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec5 = `run("opadd -e -n -v floattovec floattovec5")`
+oplocate -x `$arg2 + 3.7462300000000002` -y `$arg3 + 18.4025` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec5
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec5
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec5
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec5
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat4 (Vop/vectofloat)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat4 = `run("opadd -e -n -v vectofloat vectofloat4")`
+oplocate -x `$arg2 + -0.0067042600000000001` -y `$arg3 + 20.7319` $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat4
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat4
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat4
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat4
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec6 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec6 = `run("opadd -e -n -v floattovec floattovec6")`
+oplocate -x `$arg2 + 3.6403500000000002` -y `$arg3 + 22.4496` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec6
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec6
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec6
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec6
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec7 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec7 = `run("opadd -e -n -v floattovec floattovec7")`
+oplocate -x `$arg2 + 3.96543` -y `$arg3 + 16.699300000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec7
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec7
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec7
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec7
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append7 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append7 = `run("opadd -e -n -v append append7")`
+oplocate -x `$arg2 + 11.965199999999999` -y `$arg3 + 19.373699999999999` $_obj_CityCompoundLayout_subnet3_primitivevop3_append7
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append7 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append7
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append7
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append7
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_append8 (Vop/append)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_append8 = `run("opadd -e -n -v append append8")`
+oplocate -x `$arg2 + 6.6403499999999998` -y `$arg3 + 22.962800000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_append8
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_append8 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_append8
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_append8
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_append8
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec8 (Vop/floattovec)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_floattovec8 = `run("opadd -e -n -v floattovec floattovec8")`
+oplocate -x `$arg2 + 3.7462300000000002` -y `$arg3 + 20.7319` $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec8
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec8
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec8
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec8
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_const4 (Vop/constant)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_const4 = `run("opadd -e -n -v constant const4")`
+oplocate -x `$arg2 + 11.5646` -y `$arg3 + 0.73092100000000004` $_obj_CityCompoundLayout_subnet3_primitivevop3_const4
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_primitivevop3_const4 consttype ( int ) floatdef ( -1 ) intdef ( -1 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_const4
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_const4
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_const4
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway3 (Vop/twoway)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_twoway3 = `run("opadd -e -n -v twoway twoway3")`
+oplocate -x `$arg2 + 26.721800000000002` -y `$arg3 + 3.0889099999999998` $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway3
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway3 signature ( i )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway3
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_twoway3
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_getelement1 (Vop/getelement)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_getelement1 = `run("opadd -e -n -v getelement getelement1")`
+oplocate -x `$arg2 + 35.320500000000003` -y `$arg3 + 6.3704400000000003` $_obj_CityCompoundLayout_subnet3_primitivevop3_getelement1
+opparm $_obj_CityCompoundLayout_subnet3_primitivevop3_getelement1 signature ( s4 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_getelement1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_getelement1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivevop3_getelement1
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivevop3_subtract1 (Vop/subtract)
+set _obj_CityCompoundLayout_subnet3_primitivevop3_subtract1 = `run("opadd -e -n -v subtract subtract1")`
+oplocate -x `$arg2 + 38.428899999999999` -y `$arg3 + 4.8538600000000001` $_obj_CityCompoundLayout_subnet3_primitivevop3_subtract1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off -L off -M off -H on -E off $_obj_CityCompoundLayout_subnet3_primitivevop3_subtract1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivevop3_subtract1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_primitivevop3_subtract1
+opcf ..
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivewrangle12 (Sop/attribwrangle)
+set _obj_CityCompoundLayout_subnet3_primitivewrangle12 = `run("opadd -e -n -v attribwrangle primitivewrangle12")`
+oplocate -x `$arg2 + 0.95179999999999998` -y `$arg3 + -6.0589700000000004` $_obj_CityCompoundLayout_subnet3_primitivewrangle12
+opparm $_obj_CityCompoundLayout_subnet3_primitivewrangle12  bindings ( 0 ) groupbindings ( 0 )
+opparm $_obj_CityCompoundLayout_subnet3_primitivewrangle12 class ( primitive ) snippet ( 'vector min, max;\ngetbbox(0, itoa(@primnum),min, max);\n\nint prims[] =primfind(1, min, max);\n\nif(len(prims)>0){\n    removeprim(0, @primnum, 1);\n}' )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_primitivewrangle12
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivewrangle12
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivewrangle12
+
+# Node $_obj_CityCompoundLayout_subnet3_primitivewrangle1 (Sop/attribwrangle)
+set _obj_CityCompoundLayout_subnet3_primitivewrangle1 = `run("opadd -e -n -v attribwrangle primitivewrangle1")`
+oplocate -x `$arg2 + 3.9756100000000001` -y `$arg3 + -12.0037` $_obj_CityCompoundLayout_subnet3_primitivewrangle1
+opparm $_obj_CityCompoundLayout_subnet3_primitivewrangle1  bindings ( 0 ) groupbindings ( 0 )
+opparm $_obj_CityCompoundLayout_subnet3_primitivewrangle1 class ( primitive ) snippet ( 's@name = prim(1, "name", 0);\ni@seed = prim(1, "seed", 0);\ni@sectorID = prim(1, "sectorID", 0);\ni@sourceRank = prim(1, "sourceRank", 0);\n@sort = prim(1, "sort", 0);\n' )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_primitivewrangle1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_primitivewrangle1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_primitivewrangle1
+
+# Node $_obj_CityCompoundLayout_subnet3_pointwrangle1 (Sop/attribwrangle)
+set _obj_CityCompoundLayout_subnet3_pointwrangle1 = `run("opadd -e -n -v attribwrangle pointwrangle1")`
+oplocate -x `$arg2 + -3.6929599999999998` -y `$arg3 + 6.3296000000000001` $_obj_CityCompoundLayout_subnet3_pointwrangle1
+opparm $_obj_CityCompoundLayout_subnet3_pointwrangle1  bindings ( 0 ) groupbindings ( 0 )
+opparm $_obj_CityCompoundLayout_subnet3_pointwrangle1 snippet ( '@P.y = 0;' )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_pointwrangle1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_pointwrangle1
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_pointwrangle1
+opcf ..
+opcf $_obj_CityCompoundLayout_subnet3
+opcf $_obj_CityCompoundLayout_subnet3_primitivevop3
+oporder -e geometryvopglobal1 geometryvopoutput1 snippet1 const1 vectofloat1 vectofloat2 floattovec1 floattovec2 floattovec3 floattovec4 append1 append2 append3 append4 foreach_begin1 end_foreach1 const2 xyzdist1 compare1 twoway1 const3 twoway2 setattrib1 append5 append6 vectofloat3 floattovec5 vectofloat4 floattovec6 floattovec7 append7 append8 floattovec8 const4 twoway3 getelement1 subtract1 
+opcf ..
+
+# Node $_obj_CityCompoundLayout_subnet3_foreach_end17 (Sop/block_end)
+set _obj_CityCompoundLayout_subnet3_foreach_end17 = `run("opadd -e -n -v block_end foreach_end17")`
+oplocate -x `$arg2 + -0.56710000000000005` -y `$arg3 + -13.376200000000001` $_obj_CityCompoundLayout_subnet3_foreach_end17
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_foreach_end17 itermethod ( pieces ) method ( merge ) class ( primitive ) attrib ( sectorID ) blockpath ( ../foreach_begin17 ) templatepath ( ../foreach_begin17 )
+opcolor -c 0.75 0.40000000596046448 0 $_obj_CityCompoundLayout_subnet3_foreach_end17
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off $_obj_CityCompoundLayout_subnet3_foreach_end17
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_foreach_end17
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_foreach_end17
+
+# Node $_obj_CityCompoundLayout_subnet3_foreach_begin17 (Sop/block_begin)
+set _obj_CityCompoundLayout_subnet3_foreach_begin17 = `run("opadd -e -n -v block_begin foreach_begin17")`
+oplocate -x `$arg2 + 4.7289199999999996` -y `$arg3 + 4.7767999999999997` $_obj_CityCompoundLayout_subnet3_foreach_begin17
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_foreach_begin17 method ( piece ) blockpath ( ../foreach_end17 )
+opcolor -c 0.75 0.40000000596046448 0 $_obj_CityCompoundLayout_subnet3_foreach_begin17
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off $_obj_CityCompoundLayout_subnet3_foreach_begin17
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_foreach_begin17
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_foreach_begin17
+
+# Node $_obj_CityCompoundLayout_subnet3_split2 (Sop/split)
+set _obj_CityCompoundLayout_subnet3_split2 = `run("opadd -e -n -v split split2")`
+oplocate -x `$arg2 + -0.43668699999999999` -y `$arg3 + 0.15363599999999999` $_obj_CityCompoundLayout_subnet3_split2
+opparm $_obj_CityCompoundLayout_subnet3_split2 group ( '@del==1' ) negate ( on )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_split2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_split2
+opuserdata -n '___Version___' -v '' $_obj_CityCompoundLayout_subnet3_split2
+
+# Node $_obj_CityCompoundLayout_subnet3_sort7 (Sop/sort)
+set _obj_CityCompoundLayout_subnet3_sort7 = `run("opadd -e -n -v sort sort7")`
+oplocate -x `$arg2 + 0.95479999999999998` -y `$arg3 + -7.0655900000000003` $_obj_CityCompoundLayout_subnet3_sort7
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_sort7 primsort ( attribute ) primattrib ( area ) primreverse ( on )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_sort7
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_sort7
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_sort7
+
+# Node $_obj_CityCompoundLayout_subnet3_blast9 (Sop/blast)
+set _obj_CityCompoundLayout_subnet3_blast9 = `run("opadd -e -n -v blast blast9")`
+oplocate -x `$arg2 + 0.95479999999999998` -y `$arg3 + -8.0655900000000003` $_obj_CityCompoundLayout_subnet3_blast9
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_blast9 group ( 0 ) negate ( on )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_blast9
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_blast9
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_blast9
+
+# Node $_obj_CityCompoundLayout_subnet3_IN_RIVERS (Sop/null)
+set _obj_CityCompoundLayout_subnet3_IN_RIVERS = `run("opadd -e -n -v null IN_RIVERS")`
+oplocate -x `$arg2 + -3.5676000000000001` -y `$arg3 + 5.1890000000000001` $_obj_CityCompoundLayout_subnet3_IN_RIVERS
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_IN_RIVERS
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_IN_RIVERS
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_IN_RIVERS
+
+# Node $_obj_CityCompoundLayout_subnet3_foreach_end3 (Sop/block_end)
+set _obj_CityCompoundLayout_subnet3_foreach_end3 = `run("opadd -e -n -v block_end foreach_end3")`
+oplocate -x `$arg2 + 0.95640000000000003` -y `$arg3 + -9.1052` $_obj_CityCompoundLayout_subnet3_foreach_end3
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_foreach_end3 itermethod ( pieces ) method ( merge ) class ( primitive ) useattrib ( off ) blockpath ( ../foreach_begin3 ) templatepath ( ../foreach_begin3 )
+opcolor -c 0.75 0.40000000596046448 0 $_obj_CityCompoundLayout_subnet3_foreach_end3
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off $_obj_CityCompoundLayout_subnet3_foreach_end3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_foreach_end3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_foreach_end3
+
+# Node $_obj_CityCompoundLayout_subnet3_foreach_begin3 (Sop/block_begin)
+set _obj_CityCompoundLayout_subnet3_foreach_begin3 = `run("opadd -e -n -v block_begin foreach_begin3")`
+oplocate -x `$arg2 + 1.8932500000000001` -y `$arg3 + -2.5353500000000002` $_obj_CityCompoundLayout_subnet3_foreach_begin3
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_foreach_begin3 method ( piece ) blockpath ( ../foreach_end3 )
+opcolor -c 0.75 0.40000000596046448 0 $_obj_CityCompoundLayout_subnet3_foreach_begin3
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F off -c on -e on -b off $_obj_CityCompoundLayout_subnet3_foreach_begin3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_foreach_begin3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_foreach_begin3
+
+# Node $_obj_CityCompoundLayout_subnet3_merge3 (Sop/merge)
+set _obj_CityCompoundLayout_subnet3_merge3 = `run("opadd -e -n -v merge merge3")`
+oplocate -x `$arg2 + 0.086192199999999997` -y `$arg3 + -10.5886` $_obj_CityCompoundLayout_subnet3_merge3
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_merge3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_merge3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_merge3
+
+# Node $_obj_CityCompoundLayout_subnet3_IN_CITY (Sop/null)
+set _obj_CityCompoundLayout_subnet3_IN_CITY = `run("opadd -e -n -v null IN_CITY")`
+oplocate -x `$arg2 + 4.7273199999999997` -y `$arg3 + 6.3255999999999997` $_obj_CityCompoundLayout_subnet3_IN_CITY
+opset -d on -r on -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_IN_CITY
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_IN_CITY
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_IN_CITY
+
+# Node $_obj_CityCompoundLayout_subnet3_Assets (Sop/null)
+set _obj_CityCompoundLayout_subnet3_Assets = `run("opadd -e -n -v null Assets")`
+oplocate -x `$arg2 + -7.4402799999999996` -y `$arg3 + 4.7746500000000003` $_obj_CityCompoundLayout_subnet3_Assets
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_Assets
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_Assets
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_Assets
+
+# Node $_obj_CityCompoundLayout_subnet3_output1 (Sop/output)
+set _obj_CityCompoundLayout_subnet3_output1 = `run("opadd -e -n -v output output1")`
+oplocate -x `$arg2 + -0.56869999999999998` -y `$arg3 + -15.8477` $_obj_CityCompoundLayout_subnet3_output1
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_output1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_output1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_output1
+
+# Node $_obj_CityCompoundLayout_subnet3_blast2 (Sop/blast)
+set _obj_CityCompoundLayout_subnet3_blast2 = `run("opadd -e -n -v blast blast2")`
+oplocate -x `$arg2 + -7.4402799999999996` -y `$arg3 + 1.96085` $_obj_CityCompoundLayout_subnet3_blast2
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_blast2 group ( '@area==0' )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_blast2
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_blast2
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_blast2
+
+# Node $_obj_CityCompoundLayout_subnet3_blast3 (Sop/blast)
+set _obj_CityCompoundLayout_subnet3_blast3 = `run("opadd -e -n -v blast blast3")`
+oplocate -x `$arg2 + -7.4402799999999996` -y `$arg3 + 0.96610099999999999` $_obj_CityCompoundLayout_subnet3_blast3
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_blast3 group ( '@farmland==1' ) grouptype ( points )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_blast3
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_blast3
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_blast3
+
+# Node $_obj_CityCompoundLayout_subnet3_delete1 (Sop/delete)
+set _obj_CityCompoundLayout_subnet3_delete1 = `run("opadd -e -n -v delete delete1")`
+oplocate -x `$arg2 + -0.193444` -y `$arg3 + 2.1316799999999998` $_obj_CityCompoundLayout_subnet3_delete1
+opspareds '    parm {         name    "group"         baseparm         label   "Group"         export  none     }     parm {         name    "negate"         baseparm         label   "Operation"         export  all     }     parm {         name    "entity"         baseparm         label   "Entity"         export  all     }     parm {         name    "geotype"         baseparm         label   "Geometry Type"         export  none     }     group {         name    "stdswitcher5"         label   "Number"          parm {             name    "affectnumber"             baseparm             label   "Enable"             export  none         }         parm {             name    "groupop"             baseparm             label   "Operation"             export  none         }         parm {             name    "filter"             baseparm             label   "Filter Expression"             export  none         }         parm {             name    "pattern"             baseparm             label   "Pattern"             export  none             bindselector deleter "Delete Geometry"                 "Select the points/primitives to delete and press Enter to complete."                 0 1 0xffffffff 0 entity 0         }         parm {             name    "range"             baseparm             label   "Start / End"             export  none         }         parm {             name    "select"             baseparm             label   "Select _ of _"             export  none         }     }      group {         name    "stdswitcher5_1"         label   "Bounding Volume"          parm {             name    "affectvolume"             baseparm             label   "Enable"             export  none         }         parm {             name    "boundtype"             baseparm             label   "Bounding Type"             export  all         }         parm {             name    "size"             baseparm             label   "Size"             export  none         }         parm {             name    "t"             baseparm             label   "Center"             export  none         }     }      group {         name    "stdswitcher5_2"         label   "Normal"          parm {             name    "affectnormal"             baseparm             label   "Enable"             export  none         }         parm {             name    "dir"             baseparm             label   "Direction"             export  none         }         parm {             name    "angle"             baseparm             label   "Spread Angle"             export  none         }         parm {             name    "camerapath"             baseparm             label   "Backface from"             export  none         }     }      group {         name    "stdswitcher5_3"         label   "Degenerate"          parm {             name    "affectdegenerate"             baseparm             label   "Enable"             export  none         }         parm {             name    "degenerate"             baseparm             label   "Delete Degenerate Primitives"             export  none         }         parm {             name    "zaf"             baseparm             label   "Delete Zero-Area Faces"             export  none         }         parm {             name    "doopen"             baseparm             label   "Treat Open Faces as Closed"             export  none         }         parm {             name    "tol"             baseparm             label   "Tolerance"             export  none         }     }      parm {         name    "removegrp"         baseparm         label   "Delete Unused Groups"         export  none     }     parm {         name    "keeppoints"         baseparm         label   "Keep Points"         export  none     }     parm {         name    "spare_input0"         label   "Spare Input 0"         type    oppath         default { "" }         help    "Refer to this in expressions as -1, such as: npoint(-1)"         parmtag { "opfilter" "!!SOP!!" }         parmtag { "oprelative" "." }     } ' $_obj_CityCompoundLayout_subnet3_delete1
+chblockbegin
+chadd -t -0.041666666666666664 -0.041666666666666664 $_obj_CityCompoundLayout_subnet3_delete1 rangeend
+chkey -t -0.041666666666666664 -v 0 -m 0 -a 0 -A 0 -T a  -F '$N' $_obj_CityCompoundLayout_subnet3_delete1/rangeend
+chadd -t -0.041666666666666664 -0.041666666666666664 $_obj_CityCompoundLayout_subnet3_delete1 sizex
+chkey -t -0.041666666666666664 -v 1 -m 0 -a 0 -A 0 -T a  -F 'bbox(-1, D_XSIZE)*2' $_obj_CityCompoundLayout_subnet3_delete1/sizex
+chadd -t -0.041666666666666664 -0.041666666666666664 $_obj_CityCompoundLayout_subnet3_delete1 sizez
+chkey -t -0.041666666666666664 -v 1 -m 0 -a 0 -A 0 -T a  -F 'bbox(-1, D_ZSIZE)*2' $_obj_CityCompoundLayout_subnet3_delete1/sizez
+chadd -t -0.041666666666666664 -0.041666666666666664 $_obj_CityCompoundLayout_subnet3_delete1 tx
+chkey -t -0.041666666666666664 -v 0 -m 0 -a 0 -A 0 -T a  -F 'centroid(-1, D_X)' $_obj_CityCompoundLayout_subnet3_delete1/tx
+chadd -t -0.041666666666666664 -0.041666666666666664 $_obj_CityCompoundLayout_subnet3_delete1 tz
+chkey -t -0.041666666666666664 -v 0 -m 0 -a 0 -A 0 -T a  -F 'centroid(-1, D_Z)' $_obj_CityCompoundLayout_subnet3_delete1/tz
+chblockend
+opparm -V 16.5.727 $_obj_CityCompoundLayout_subnet3_delete1 negate ( keep ) stdswitcher ( 1 1 1 1 ) affectvolume ( on ) size ( sizex 1000 sizez ) t ( tx 0 tz ) stdswitcher5 ( 1 1 1 1 ) spare_input0 ( ../foreach_begin17 )
+opset -d off -r off -h off -f off -y off -t off -l off -s off -u off -F on -c on -e on -b off $_obj_CityCompoundLayout_subnet3_delete1
+opexprlanguage -s hscript $_obj_CityCompoundLayout_subnet3_delete1
+opuserdata -n '___Version___' -v '16.5.727' $_obj_CityCompoundLayout_subnet3_delete1
+oporder -e primitivewrangle4 primitivevop3 primitivewrangle12 foreach_end17 foreach_begin17 split2 sort7 blast9 IN_RIVERS foreach_end3 foreach_begin3 merge3 IN_CITY Assets output1 primitivewrangle1 blast2 blast3 pointwrangle1 delete1 
+opcf ..
+opset -p on $_obj_CityCompoundLayout_subnet3
+
+opcf $arg1
+opwire -n $_obj_CityCompoundLayout_animCurve -0 $_obj_CityCompoundLayout_subnet3
+opwire -n $_obj_CityCompoundLayout_blast48 -1 $_obj_CityCompoundLayout_subnet3
+opwire -n $_obj_CityCompoundLayout_attribdelete1 -2 $_obj_CityCompoundLayout_subnet3
+opcf $_obj_CityCompoundLayout_subnet3
+opwire -n $_obj_CityCompoundLayout_subnet3_foreach_begin17 -0 $_obj_CityCompoundLayout_subnet3_primitivewrangle4
+opwire -n $_obj_CityCompoundLayout_subnet3_delete1 -1 $_obj_CityCompoundLayout_subnet3_primitivewrangle4
+opwire -n $_obj_CityCompoundLayout_subnet3_blast3 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3
+opwire -n $_obj_CityCompoundLayout_subnet3_IN_RIVERS -1 $_obj_CityCompoundLayout_subnet3_primitivevop3
+opwire -n $_obj_CityCompoundLayout_subnet3_foreach_begin3 -2 $_obj_CityCompoundLayout_subnet3_primitivevop3
+opcf $_obj_CityCompoundLayout_subnet3_primitivevop3
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const1 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const1 -1 $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const1 -2 $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const1 -3 $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1
+opwire -n -o 1 $_obj_CityCompoundLayout_subnet3_primitivevop3_snippet1 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1
+opwire -n -o 2 $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1 -2 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2
+opwire -n -o 2 $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2 -2 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3
+opwire -n -o 2 $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat1 -2 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4
+opwire -n -o 2 $_obj_CityCompoundLayout_subnet3_primitivevop3_vectofloat2 -2 $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec1 -1 $_obj_CityCompoundLayout_subnet3_primitivevop3_append1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_append1 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_append2
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec2 -1 $_obj_CityCompoundLayout_subnet3_primitivevop3_append2
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_append2 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_append3
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec3 -1 $_obj_CityCompoundLayout_subnet3_primitivevop3_append3
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_append3 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_append4
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_floattovec4 -1 $_obj_CityCompoundLayout_subnet3_primitivevop3_append4
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_append4 -0 $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const2 -3 $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const3 -4 $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop3_const4 -5 $_obj_CityCompoundLayout_subnet3_primitivevop3_foreach_begin1
+opwire -n $_obj_CityCompoundLayout_subnet3_primitivevop
